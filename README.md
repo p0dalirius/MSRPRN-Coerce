@@ -3,7 +3,7 @@
 <p align="center">
     A python script to force authentification using MS-RPRN RemoteFindFirstPrinterChangeNotificationEx function (opnum 69).
     <br>
-    <img src="https://visitor-badge.glitch.me/badge?page_id=https://github.com/p0dalirius/MSRPRN-Coerce/README.md"/>
+    <img src="https://badges.pufler.dev/visits/p0dalirius/MSRPRN-Coerce/"/>
     <img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/p0dalirius/MSRPRN-Coerce">
     <a href="https://twitter.com/intent/follow?screen_name=podalirius_" title="Follow"><img src="https://img.shields.io/twitter/follow/podalirius_?label=Podalirius&style=social"></a>
     <br>
