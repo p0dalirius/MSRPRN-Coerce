@@ -1,7 +1,7 @@
 # MSRPRN-Coerce
 
 <p align="center">
-    A python script to force authentification using MS-RPRN RemoteFindFirstPrinterChangeNotificationEx function (opnum 69).
+    A python script to force authentification using MS-RPRN RemoteFindFirstPrinterChangeNotificationEx function (opnum 65).
     <br>
     <img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/p0dalirius/MSRPRN-Coerce">
     <a href="https://twitter.com/intent/follow?screen_name=podalirius_" title="Follow"><img src="https://img.shields.io/twitter/follow/podalirius_?label=Podalirius&style=social"></a>
@@ -15,7 +15,7 @@
 
 **Requires**: A valid username and password on the domain.
 
- - [x] Force authentification using MS-RPRN `RemoteFindFirstPrinterChangeNotificationEx` function (opnum 69).
+ - [x] Force authentification using MS-RPRN `RemoteFindFirstPrinterChangeNotificationEx` function (opnum 65).
  - [x] 🐍 Python 3 and Python 2 compatibility.
  - [x] Targets either a single IP or a range of IPs.
 
@@ -28,7 +28,7 @@ MS-RPRN-Coerce v1.1 - by @podalirius_
 usage: e.py [-h] [-v] [--dc-ip ip address] [-d DOMAIN] [-u USER] [--target-ip ip address] [--no-pass | -p PASSWORD | -H [LMHASH:]NTHASH | --aes-key hex key] [-k]
             listener target
 
-Force authentification using MS-RPRN RemoteFindFirstPrinterChangeNotificationEx function (opnum 69).
+Force authentification using MS-RPRN RemoteFindFirstPrinterChangeNotificationEx function (opnum 65).
 
 positional arguments:
   listener              IP address or hostname of listener.
@@ -68,7 +68,7 @@ To force `DC01.LAB.local` to authenticate over SMB to your attacker IP `192.168.
 
 ## Technical detail
 
-This attack performs an RPC call of the `RpcRemoteFindFirstPrinterChangeNotificationEx` function (opnum 69) in the SMB named pipe `\pipe\spoolss` through the `IPC$` share to force authentication from a target machine to another.
+This attack performs an RPC call of the `RpcRemoteFindFirstPrinterChangeNotificationEx` function (opnum 65) in the SMB named pipe `\pipe\spoolss` through the `IPC$` share to force authentication from a target machine to another.
 
 ## Demo
 
