@@ -185,7 +185,7 @@ def build_RpcRemoteFindFirstPrinterChangeNotificationEx_struct(listener):
 
 
 def parseArgs():
-    print("MS-RPRN-Coerce v1.1 - by @podalirius_\n")
+    print("MS-RPRN-Coerce v1.1 - by Remi GASCOU (Podalirius)\n")
 
     parser = argparse.ArgumentParser(description="Force authentification using MS-RPRN RemoteFindFirstPrinterChangeNotificationEx function (opnum 65).")
     parser.add_argument("-v", "--verbose", default=False, action="store_true", help='Verbose mode. (default: False)')

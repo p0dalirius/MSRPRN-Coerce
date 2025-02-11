@@ -23,7 +23,7 @@
 
 ```
 $ ./MS-RPRN-Coerce.py -h
-MS-RPRN-Coerce v1.1 - by @podalirius_
+MS-RPRN-Coerce v1.1 - by Remi GASCOU (Podalirius)
 
 usage: e.py [-h] [-v] [--dc-ip ip address] [-d DOMAIN] [-u USER] [--target-ip ip address] [--no-pass | -p PASSWORD | -H [LMHASH:]NTHASH | --aes-key hex key] [-k]
             listener target
